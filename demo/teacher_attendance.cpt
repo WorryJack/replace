@@ -1,0 +1,1067 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<WorkBook xmlVersion="20131111" releaseVersion="7.0.5">
+<TableDataMap>
+<TableData name="cla_year" class="com.fr.data.impl.DBTableData">
+<Parameters/>
+<Attributes maxMemRowCount="-1"/>
+<Connection class="com.fr.data.impl.NameDatabaseConnection">
+<DatabaseName>
+<![CDATA[newbi_mysql]]></DatabaseName>
+</Connection>
+<Query>
+<![CDATA[  select (2009 + rownum)||'' as year
+  from(      
+     select 1 from tb_city_config
+     union all         
+     select 1 from tb_city_config
+  ) where rownum <= to_char(sysdate,'yyyy')-2007
+  order by year desc  ]]></Query>
+</TableData>
+<TableData name="cla_term_name" class="com.fr.data.impl.DBTableData">
+<Parameters/>
+<Attributes maxMemRowCount="-1"/>
+<Connection class="com.fr.data.impl.NameDatabaseConnection">
+<DatabaseName>
+<![CDATA[newbi_mysql]]></DatabaseName>
+</Connection>
+<Query>
+<![CDATA[ --  学期 参数名：【term】
+  select '春季班' cla_term_name,'1' cla_term_id from dual
+  union all
+  select '暑期班' cla_term_name,'2' cla_term_id from dual
+  union all
+  select '秋季班' cla_term_name,'3' cla_term_id from dual
+  union all
+  select '寒假班' cla_term_name,'4' cla_term_id from dual
+  union all
+  select '短期班' cla_term_name,'5' cla_term_id from dual
+  union all
+  select '活动类' cla_term_name,'6' cla_term_id from dual
+  union all
+  select '考试类' cla_term_name,'7' cla_term_id from dual
+  union all
+  select '诊断类' cla_term_name,'7' cla_term_id from dual  ]]></Query>
+</TableData>
+<TableData name="cla_gt_name" class="com.fr.data.impl.DBTableData">
+<Parameters>
+<Parameter>
+<Attributes name="USER_ID"/>
+<O>
+<![CDATA[]]></O>
+</Parameter>
+</Parameters>
+<Attributes maxMemRowCount="-1"/>
+<Connection class="com.fr.data.impl.NameDatabaseConnection">
+<DatabaseName>
+<![CDATA[newbi_mysql]]></DatabaseName>
+</Connection>
+<Query>
+<![CDATA[  SELECT DISTINCT t.gtid,t.gtname FROM wd_grade_subject t
+  WHERE 1=1
+  AND (EXISTS (SELECT 1 FROM bus_authority_t b
+          WHERE b.all_flag='1' --  事业部权限，拥有事业部所有分校权限
+            and b.user_id = '${USER_ID}'
+            AND b.bus_id = '1')
+     OR (EXISTS (SELECT 1 FROM city_authority_t c
+          WHERE c.all_flag='1' --  分校权限，拥有本分校所有产品线权限
+            AND c.user_id = '${USER_ID}'
+            AND c.city_id=t.cityid)) --  注意：替换city_id     
+     OR (EXISTS (SELECT 1 FROM city_authority_t c,data_authority_t d
+          WHERE d.user_id=c.user_id --  拥有分校的部分产品线权限
+            AND d.xb_pid IS NOT NULL
+            AND d.xb_pid=t.pid  --  注意：替换pid
+            and c.user_id = '${USER_ID}'
+            AND c.all_flag = 0))
+       )
+     ORDER BY CASE WHEN t.gtid='5' THEN 1
+                   WHEN t.gtid='1' THEN 3
+                   WHEN t.gtid='2' THEN 5
+                   WHEN t.gtid='3' THEN 7
+                   ELSE 9 END,t.gtname]]></Query>
+</TableData>
+<TableData name="cla_grade_name" class="com.fr.data.impl.DBTableData">
+<Parameters>
+<Parameter>
+<Attributes name="USER_ID"/>
+<O>
+<![CDATA[]]></O>
+</Parameter>
+<Parameter>
+<Attributes name="cla_gt_name"/>
+<O>
+<![CDATA[]]></O>
+</Parameter>
+</Parameters>
+<Attributes maxMemRowCount="-1"/>
+<Connection class="com.fr.data.impl.NameDatabaseConnection">
+<DatabaseName>
+<![CDATA[newbi_mysql]]></DatabaseName>
+</Connection>
+<Query>
+<![CDATA[ select distinct t.gradeid cla_grade_id,t.gradename cla_grade_name,t.gradeorder
+  from wd_grade_subject t
+  where 1=1
+    ${if(len(cla_gt_name)==0,"","and t.gtname in ('" + cla_gt_name + "')") }
+  and (exists (select 1 from bus_authority_t b
+          where b.all_flag='1' --  事业部权限，拥有事业部所有分校权限
+            and b.user_id = '${USER_ID}'
+            and b.bus_id = '1')
+     or (exists (select 1 from city_authority_t c
+          where c.all_flag='1' --  分校权限，拥有本分校所有产品线权限
+            and c.user_id = '${USER_ID}'
+            and c.city_id=t.cityid)) --  注意：替换city_id     
+     or (exists (select 1 from city_authority_t c,data_authority_t d
+          where d.user_id=c.user_id --  拥有分校的部分产品线权限
+            and d.xb_pid is not null
+            and d.xb_pid=t.pid  --  注意：替换pid
+            and c.user_id = '${USER_ID}'
+            and c.all_flag = 0))
+       )
+     order by length(t.gradeorder),t.gradeorder
+     ]]></Query>
+</TableData>
+<TableData name="cla_subject_names" class="com.fr.data.impl.DBTableData">
+<Parameters>
+<Parameter>
+<Attributes name="USER_ID"/>
+<O>
+<![CDATA[]]></O>
+</Parameter>
+<Parameter>
+<Attributes name="cla_gt_name"/>
+<O>
+<![CDATA[]]></O>
+</Parameter>
+<Parameter>
+<Attributes name="cla_grade_name"/>
+<O>
+<![CDATA[]]></O>
+</Parameter>
+</Parameters>
+<Attributes maxMemRowCount="-1"/>
+<Connection class="com.fr.data.impl.NameDatabaseConnection">
+<DatabaseName>
+<![CDATA[newbi_mysql]]></DatabaseName>
+</Connection>
+<Query>
+<![CDATA[ --  学科 【subject】		    
+  select distinct t.subjectname cla_subject_name,t.subjectorder
+  from wd_grade_subject t
+  where 1=1
+    ${if(len(cla_gt_name)==0,"","and t.gtname in ('" + cla_gt_name + "')") }
+    ${if(len(cla_grade_name)==0,"","and t.gradename in ('" + cla_grade_name + "')") }
+  and (exists (select 1 from bus_authority_t b
+          where b.all_flag='1' --  事业部权限，拥有事业部所有分校权限
+            and b.user_id = '${USER_ID}'
+            and b.bus_id = '1')
+     or (exists (select 1 from city_authority_t c
+          where c.all_flag='1' --  分校权限，拥有本分校所有产品线权限
+            and c.user_id = '${USER_ID}'
+            and c.city_id=t.cityid)) --  注意：替换city_id     
+     or (exists (select 1 from city_authority_t c,data_authority_t d
+          where d.user_id=c.user_id --  拥有分校的部分产品线权限
+            and d.xb_pid is not null
+            and d.xb_pid=t.pid  --  注意：替换pid
+            and c.user_id = '${USER_ID}'
+            and c.all_flag = 0))
+       )
+     order by length(t.subjectorder),t.subjectorder]]></Query>
+</TableData>
+<TableData name="ds_teacher_attendance" class="com.fr.data.impl.DBTableData">
+<Parameters>
+<Parameter>
+<Attributes name="cla_term_name"/>
+<O>
+<![CDATA[]]></O>
+</Parameter>
+<Parameter>
+<Attributes name="end_date"/>
+<O>
+<![CDATA[]]></O>
+</Parameter>
+<Parameter>
+<Attributes name="cla_year"/>
+<O>
+<![CDATA[]]></O>
+</Parameter>
+<Parameter>
+<Attributes name="cla_gt_name"/>
+<O>
+<![CDATA[]]></O>
+</Parameter>
+<Parameter>
+<Attributes name="num_14"/>
+<O>
+<![CDATA[]]></O>
+</Parameter>
+<Parameter>
+<Attributes name="start_date"/>
+<O>
+<![CDATA[]]></O>
+</Parameter>
+<Parameter>
+<Attributes name="cla_subject_names"/>
+<O>
+<![CDATA[]]></O>
+</Parameter>
+<Parameter>
+<Attributes name="cla_grade_name"/>
+<O>
+<![CDATA[]]></O>
+</Parameter>
+</Parameters>
+<Attributes maxMemRowCount="-1"/>
+<Connection class="com.fr.data.impl.NameDatabaseConnection">
+<DatabaseName>
+<![CDATA[newbi_mysql]]></DatabaseName>
+</Connection>
+<Query>
+<![CDATA[
+SELECT
+  to_char(tc.atte_create_date,'yyyy-mm-dd') as 创建时间,
+  tc.cla_name as 班级名称,
+  tc.cla_year as 年份,
+  tc.cla_term_name as 学期,
+  tc.cla_gt_name as 学部,
+  tc.cla_grade_name as 年级,
+  tc.cla_subject_names as 学科,
+  tc.cla_level_name as 班次,
+  tc.cla_teacher_names as 班级教师,
+  tc.cla_area_name as 地区,
+  tc.cla_servicecenter_name as 服务中心,
+  tc.cla_venue_name as 教学点,
+  tc.cla_classroom_name as 教室,
+  tc.cla_class_count as 总课次,
+  tc.cla_every_hours as 课程时间,
+  tc.cla_classtime_names 班级上课时间,
+  tc.if_later as 是否迟到,
+  tc.tea_teacher_name as 上课教师,
+  tc.cuc_class_date as 课次上课日期,
+  tc.cuc_start_time as 课次上课时间,
+  tc.atte_later_attend_hour as 迟到时间,
+  tc.cuc_class_num as 课次,
+  tc.atte_absent_reason as 缺勤原因,
+  tc.if_deleted as 是否删除,
+  tc.cla_start_date as 开课日期,
+  tc.cla_end_date as 结课日期
+FROM dn_teacher_attendance_stat tc
+where tc.city_id='1'
+  and tc.cla_year ='${cla_year}'
+  and tc.cla_term_name in ('${cla_term_name}')
+  and to_char(tc.atte_create_date,'yyyy-mm-dd')>='${start_date}'
+  and to_char(tc.atte_create_date,'yyyy-mm-dd')<='${end_date}'
+  ${if(num_14='true',"and tc.atte_later_attend_hour is not null ","")}  
+  ${if(len(cla_gt_name) == 0,""," and tc.cla_gt_name = '"+ cla_gt_name +"' ")}
+  ${if(len(cla_grade_name) == 0,""," and tc.cla_grade_name = '"+ cla_grade_name +"' ")}
+  ${if(len(cla_subject_names) == 0,""," and tc.cla_subject_names = '"+ cla_subject_names +"' 
+")}
+order by tc.atte_create_date desc]]></Query>
+</TableData>
+<TableData name="ds_date" class="com.fr.data.impl.DBTableData">
+<Parameters/>
+<Attributes maxMemRowCount="-1"/>
+<Connection class="com.fr.data.impl.NameDatabaseConnection">
+<DatabaseName>
+<![CDATA[newbi_mysql]]></DatabaseName>
+</Connection>
+<Query>
+<![CDATA[select sysdate+(2-to_char(sysdate,'d'))-7 上周一,
+       sysdate+(2-to_char(sysdate,'d'))-1 上周日 from dual]]></Query>
+</TableData>
+</TableDataMap>
+<Report class="com.fr.report.worksheet.WorkSheet" name="sheet1">
+<ReportPageAttr>
+<HR F="0" T="0"/>
+<FR/>
+<HC/>
+<FC/>
+</ReportPageAttr>
+<RowHeight defaultValue="723900">
+<![CDATA[1152000,1152000,723900,723900,723900,723900,723900,723900,723900,723900,723900]]></RowHeight>
+<ColumnWidth defaultValue="2743200">
+<![CDATA[2476500,0,1219200,1600200,0,3848100,1257300,4876800,1981200,3810000,2895600,3619500,3962400,1104900,1066800,4762500,1943100,1981200,2438400,1676400,2019300,1066800,1943100,1943100,2400300,2476500,2743200]]></ColumnWidth>
+<CellElementList>
+<C c="0" r="0" s="0">
+<O>
+<![CDATA[考勤时间]]></O>
+<Expand/>
+</C>
+<C c="1" r="0" s="0">
+<O>
+<![CDATA[班级名称]]></O>
+<Expand/>
+</C>
+<C c="2" r="0" s="0">
+<O>
+<![CDATA[年份]]></O>
+<Expand/>
+</C>
+<C c="3" r="0" s="0">
+<O>
+<![CDATA[学期]]></O>
+<Expand/>
+</C>
+<C c="4" r="0" s="0">
+<Expand/>
+</C>
+<C c="5" r="0" s="0">
+<O>
+<![CDATA[年级]]></O>
+<Expand/>
+</C>
+<C c="6" r="0" s="0">
+<O>
+<![CDATA[学科]]></O>
+<Expand/>
+</C>
+<C c="7" r="0" s="0">
+<O>
+<![CDATA[班次]]></O>
+<Expand/>
+</C>
+<C c="8" r="0" s="0">
+<O>
+<![CDATA[教师]]></O>
+<Expand/>
+</C>
+<C c="9" r="0" s="0">
+<O>
+<![CDATA[地区]]></O>
+<Expand/>
+</C>
+<C c="10" r="0" s="0">
+<O>
+<![CDATA[服务中心]]></O>
+<Expand/>
+</C>
+<C c="11" r="0" s="0">
+<O>
+<![CDATA[教学点]]></O>
+<Expand/>
+</C>
+<C c="12" r="0" s="0">
+<O>
+<![CDATA[教室]]></O>
+<Expand/>
+</C>
+<C c="13" r="0" s="0">
+<O>
+<![CDATA[总课次]]></O>
+<Expand/>
+</C>
+<C c="14" r="0" s="0">
+<O>
+<![CDATA[课程时间]]></O>
+<Expand/>
+</C>
+<C c="15" r="0" s="0">
+<O>
+<![CDATA[班级上课时间]]></O>
+<Expand/>
+</C>
+<C c="16" r="0" s="0">
+<O>
+<![CDATA[是否迟到]]></O>
+<Expand/>
+</C>
+<C c="17" r="0" s="0">
+<O>
+<![CDATA[上课教师]]></O>
+<Expand/>
+</C>
+<C c="18" r="0" s="0">
+<O>
+<![CDATA[课次上课 日期]]></O>
+<Expand/>
+</C>
+<C c="19" r="0" s="0">
+<O>
+<![CDATA[课次上课时间]]></O>
+<Expand/>
+</C>
+<C c="20" r="0" s="0">
+<O>
+<![CDATA[迟到时间]]></O>
+<Expand/>
+</C>
+<C c="21" r="0" s="0">
+<O>
+<![CDATA[课次]]></O>
+<Expand/>
+</C>
+<C c="22" r="0" s="0">
+<O>
+<![CDATA[缺勤原因]]></O>
+<Expand/>
+</C>
+<C c="23" r="0" s="0">
+<O>
+<![CDATA[是否删除]]></O>
+<Expand/>
+</C>
+<C c="24" r="0" s="0">
+<O>
+<![CDATA[开课日期]]></O>
+<Expand/>
+</C>
+<C c="25" r="0" s="0">
+<O>
+<![CDATA[结课日期]]></O>
+<Expand/>
+</C>
+<C c="0" r="1" s="1">
+<O t="DSColumn">
+<Attributes dsName="ds_teacher_attendance" columnName="创建时间"/>
+<Complex/>
+<RG class="com.fr.report.cell.cellattr.core.group.FunctionGrouper">
+<Attr divideMode="1"/>
+</RG>
+<Parameters/>
+</O>
+<Expand dir="0"/>
+</C>
+<C c="1" r="1" s="1">
+<O t="DSColumn">
+<Attributes dsName="ds_teacher_attendance" columnName="班级名称"/>
+<Complex/>
+<RG class="com.fr.report.cell.cellattr.core.group.FunctionGrouper">
+<Attr divideMode="1"/>
+</RG>
+<Parameters/>
+</O>
+<Expand dir="0"/>
+</C>
+<C c="2" r="1" s="1">
+<O t="DSColumn">
+<Attributes dsName="ds_teacher_attendance" columnName="年份"/>
+<Complex/>
+<RG class="com.fr.report.cell.cellattr.core.group.FunctionGrouper">
+<Attr divideMode="1"/>
+</RG>
+<Parameters/>
+</O>
+<Expand dir="0"/>
+</C>
+<C c="3" r="1" s="1">
+<O t="DSColumn">
+<Attributes dsName="ds_teacher_attendance" columnName="学期"/>
+<Complex/>
+<RG class="com.fr.report.cell.cellattr.core.group.FunctionGrouper">
+<Attr divideMode="1"/>
+</RG>
+<Parameters/>
+</O>
+<Expand dir="0"/>
+</C>
+<C c="4" r="1" s="1">
+<O t="DSColumn">
+<Attributes dsName="ds_teacher_attendance" columnName="CLA_GT_NAME"/>
+<Complex/>
+<RG class="com.fr.report.cell.cellattr.core.group.FunctionGrouper">
+<Attr divideMode="1"/>
+</RG>
+<Parameters/>
+</O>
+<Expand dir="0"/>
+</C>
+<C c="5" r="1" s="1">
+<O t="DSColumn">
+<Attributes dsName="ds_teacher_attendance" columnName="年级"/>
+<Complex/>
+<RG class="com.fr.report.cell.cellattr.core.group.FunctionGrouper">
+<Attr divideMode="1"/>
+</RG>
+<Parameters/>
+</O>
+<Expand dir="0"/>
+</C>
+<C c="6" r="1" s="1">
+<O t="DSColumn">
+<Attributes dsName="ds_teacher_attendance" columnName="学科"/>
+<Complex/>
+<RG class="com.fr.report.cell.cellattr.core.group.FunctionGrouper">
+<Attr divideMode="1"/>
+</RG>
+<Parameters/>
+</O>
+<Expand dir="0"/>
+</C>
+<C c="7" r="1" s="1">
+<O t="DSColumn">
+<Attributes dsName="ds_teacher_attendance" columnName="班次"/>
+<Complex/>
+<RG class="com.fr.report.cell.cellattr.core.group.FunctionGrouper">
+<Attr divideMode="1"/>
+</RG>
+<Parameters/>
+</O>
+<Expand dir="0"/>
+</C>
+<C c="8" r="1" s="1">
+<O t="DSColumn">
+<Attributes dsName="ds_teacher_attendance" columnName="班级教师"/>
+<Complex/>
+<RG class="com.fr.report.cell.cellattr.core.group.FunctionGrouper">
+<Attr divideMode="1"/>
+</RG>
+<Parameters/>
+</O>
+<Expand dir="0"/>
+</C>
+<C c="9" r="1" s="1">
+<O t="DSColumn">
+<Attributes dsName="ds_teacher_attendance" columnName="地区"/>
+<Complex/>
+<RG class="com.fr.report.cell.cellattr.core.group.FunctionGrouper">
+<Attr divideMode="1"/>
+</RG>
+<Parameters/>
+</O>
+<Expand dir="0"/>
+</C>
+<C c="10" r="1" s="1">
+<O t="DSColumn">
+<Attributes dsName="ds_teacher_attendance" columnName="服务中心"/>
+<Complex/>
+<RG class="com.fr.report.cell.cellattr.core.group.FunctionGrouper">
+<Attr divideMode="1"/>
+</RG>
+<Parameters/>
+</O>
+<Expand dir="0"/>
+</C>
+<C c="11" r="1" s="1">
+<O t="DSColumn">
+<Attributes dsName="ds_teacher_attendance" columnName="教学点"/>
+<Complex/>
+<RG class="com.fr.report.cell.cellattr.core.group.FunctionGrouper">
+<Attr divideMode="1"/>
+</RG>
+<Parameters/>
+</O>
+<Expand dir="0"/>
+</C>
+<C c="12" r="1" s="1">
+<O t="DSColumn">
+<Attributes dsName="ds_teacher_attendance" columnName="教室"/>
+<Complex/>
+<RG class="com.fr.report.cell.cellattr.core.group.FunctionGrouper">
+<Attr divideMode="1"/>
+</RG>
+<Parameters/>
+</O>
+<Expand dir="0"/>
+</C>
+<C c="13" r="1" s="1">
+<O t="DSColumn">
+<Attributes dsName="ds_teacher_attendance" columnName="总课次"/>
+<Complex/>
+<RG class="com.fr.report.cell.cellattr.core.group.FunctionGrouper">
+<Attr divideMode="1"/>
+</RG>
+<Parameters/>
+</O>
+<Expand dir="0"/>
+</C>
+<C c="14" r="1" s="1">
+<O t="DSColumn">
+<Attributes dsName="ds_teacher_attendance" columnName="课程时间"/>
+<Complex/>
+<RG class="com.fr.report.cell.cellattr.core.group.FunctionGrouper">
+<Attr divideMode="1"/>
+</RG>
+<Parameters/>
+</O>
+<Expand dir="0"/>
+</C>
+<C c="15" r="1" s="1">
+<O t="DSColumn">
+<Attributes dsName="ds_teacher_attendance" columnName="班级上课时间"/>
+<Complex/>
+<RG class="com.fr.report.cell.cellattr.core.group.FunctionGrouper">
+<Attr divideMode="1"/>
+</RG>
+<Parameters/>
+</O>
+<Expand dir="0"/>
+</C>
+<C c="16" r="1" s="1">
+<O t="DSColumn">
+<Attributes dsName="ds_teacher_attendance" columnName="是否迟到"/>
+<Complex/>
+<RG class="com.fr.report.cell.cellattr.core.group.FunctionGrouper">
+<Attr divideMode="1"/>
+</RG>
+<Parameters/>
+</O>
+<Expand dir="0"/>
+</C>
+<C c="17" r="1" s="1">
+<O t="DSColumn">
+<Attributes dsName="ds_teacher_attendance" columnName="上课教师"/>
+<Complex/>
+<RG class="com.fr.report.cell.cellattr.core.group.FunctionGrouper">
+<Attr divideMode="1"/>
+</RG>
+<Parameters/>
+</O>
+<Expand dir="0"/>
+</C>
+<C c="18" r="1" s="1">
+<O t="DSColumn">
+<Attributes dsName="ds_teacher_attendance" columnName="课次上课日期"/>
+<Complex/>
+<RG class="com.fr.report.cell.cellattr.core.group.FunctionGrouper">
+<Attr divideMode="1"/>
+</RG>
+<Parameters/>
+</O>
+<Expand dir="0"/>
+</C>
+<C c="19" r="1" s="1">
+<O t="DSColumn">
+<Attributes dsName="ds_teacher_attendance" columnName="课次上课时间"/>
+<Complex/>
+<RG class="com.fr.report.cell.cellattr.core.group.FunctionGrouper">
+<Attr divideMode="1"/>
+</RG>
+<Parameters/>
+</O>
+<Expand dir="0"/>
+</C>
+<C c="20" r="1" s="1">
+<O t="DSColumn">
+<Attributes dsName="ds_teacher_attendance" columnName="迟到时间"/>
+<Complex/>
+<RG class="com.fr.report.cell.cellattr.core.group.FunctionGrouper">
+<Attr divideMode="1"/>
+</RG>
+<Parameters/>
+</O>
+<Expand dir="0"/>
+</C>
+<C c="21" r="1" s="1">
+<O t="DSColumn">
+<Attributes dsName="ds_teacher_attendance" columnName="课次"/>
+<Complex/>
+<RG class="com.fr.report.cell.cellattr.core.group.FunctionGrouper">
+<Attr divideMode="1"/>
+</RG>
+<Parameters/>
+</O>
+<Expand dir="0"/>
+</C>
+<C c="22" r="1" s="1">
+<O t="DSColumn">
+<Attributes dsName="ds_teacher_attendance" columnName="缺勤原因"/>
+<Complex/>
+<RG class="com.fr.report.cell.cellattr.core.group.FunctionGrouper">
+<Attr divideMode="1"/>
+</RG>
+<Parameters/>
+</O>
+<Expand dir="0"/>
+</C>
+<C c="23" r="1" s="1">
+<O t="DSColumn">
+<Attributes dsName="ds_teacher_attendance" columnName="是否删除"/>
+<Complex/>
+<RG class="com.fr.report.cell.cellattr.core.group.FunctionGrouper">
+<Attr divideMode="1"/>
+</RG>
+<Parameters/>
+</O>
+<Expand dir="0"/>
+</C>
+<C c="24" r="1" s="1">
+<O t="DSColumn">
+<Attributes dsName="ds_teacher_attendance" columnName="开课日期"/>
+<Complex/>
+<RG class="com.fr.report.cell.cellattr.core.group.FunctionGrouper">
+<Attr divideMode="1"/>
+</RG>
+<Parameters/>
+</O>
+<Expand dir="0"/>
+</C>
+<C c="25" r="1" s="1">
+<O t="DSColumn">
+<Attributes dsName="ds_teacher_attendance" columnName="结课日期"/>
+<Complex/>
+<RG class="com.fr.report.cell.cellattr.core.group.FunctionGrouper">
+<Attr divideMode="1"/>
+</RG>
+<Parameters/>
+</O>
+<Expand dir="0"/>
+</C>
+</CellElementList>
+<ReportAttrSet>
+<ReportSettings headerHeight="0" footerHeight="2304000">
+<PaperSetting orientation="1">
+<PaperSize width="46368000" height="64080000"/>
+<Margin top="288000" left="576000" bottom="288000" right="576000"/>
+</PaperSetting>
+<Background name="NullBackground"/>
+</ReportSettings>
+<Header reportPageType="0">
+<Background name="NullBackground"/>
+<LeftList/>
+<CenterList/>
+<RightList/>
+</Header>
+<Footer reportPageType="1">
+<Background name="NullBackground"/>
+<LeftList>
+<HFElement className="com.fr.main.headerfooter.TextHFElement">
+<FRFont name="SimSun" style="1" size="72" foreground="-65536"/>
+<![CDATA[报表说明：
+ 1、数据的截止时间为当天零点；
+ 2、可查询最近一个月的教师考勤迟到数据；
+ 3、默认的开始查询时间为上周一，结束查询时间为上周日，包含查询日的数据；]]></HFElement>
+</LeftList>
+<CenterList/>
+<RightList/>
+</Footer>
+<Footer reportPageType="0">
+<Background name="NullBackground"/>
+<LeftList/>
+<CenterList/>
+<RightList/>
+</Footer>
+</ReportAttrSet>
+</Report>
+<ReportParameterAttr>
+<Attributes showWindow="true" delayPlaying="true" windowPosition="1" align="0"/>
+<PWTitle>
+<![CDATA[参数]]></PWTitle>
+<ParameterUI class="com.fr.form.main.parameter.FormParameterUI">
+<Layout class="com.fr.form.ui.container.WAbsoluteLayout">
+<WidgetName name="para"/>
+<WidgetAttr/>
+<Widget class="com.fr.form.ui.container.WAbsoluteLayout$BoundsWidget">
+<InnerWidget class="com.fr.form.ui.Label">
+<WidgetName name="Label_start"/>
+<WidgetAttr/>
+<LabelAttr verticalcenter="true" textalign="0" autoline="true"/>
+<FRFont name="SimSun" style="0" size="72"/>
+<widgetValue>
+<O>
+<![CDATA[考勤开始日期:]]></O>
+</widgetValue>
+</InnerWidget>
+<BoundsAttr x="78" y="37" width="83" height="21"/>
+</Widget>
+<Widget class="com.fr.form.ui.container.WAbsoluteLayout$BoundsWidget">
+<InnerWidget class="com.fr.form.parameter.FormSubmitButton">
+<WidgetName name="Search"/>
+<WidgetAttr/>
+<Text>
+<![CDATA[查询]]></Text>
+<Hotkeys>
+<![CDATA[enter]]></Hotkeys>
+</InnerWidget>
+<BoundsAttr x="620" y="37" width="71" height="21"/>
+</Widget>
+<Widget class="com.fr.form.ui.container.WAbsoluteLayout$BoundsWidget">
+<InnerWidget class="com.fr.form.ui.Label">
+<WidgetName name="Label_subjects"/>
+<WidgetAttr/>
+<LabelAttr verticalcenter="true" textalign="0" autoline="true"/>
+<FRFont name="SimSun" style="0" size="72"/>
+<widgetValue>
+<O>
+<![CDATA[学科:]]></O>
+</widgetValue>
+</InnerWidget>
+<BoundsAttr x="593" y="8" width="34" height="21"/>
+</Widget>
+<Widget class="com.fr.form.ui.container.WAbsoluteLayout$BoundsWidget">
+<InnerWidget class="com.fr.form.ui.Label">
+<WidgetName name="Label_grade"/>
+<WidgetAttr/>
+<LabelAttr verticalcenter="true" textalign="0" autoline="true"/>
+<FRFont name="SimSun" style="0" size="72"/>
+<widgetValue>
+<O>
+<![CDATA[年级:]]></O>
+</widgetValue>
+</InnerWidget>
+<BoundsAttr x="454" y="8" width="34" height="21"/>
+</Widget>
+<Widget class="com.fr.form.ui.container.WAbsoluteLayout$BoundsWidget">
+<InnerWidget class="com.fr.form.ui.ComboBox">
+<WidgetName name="cla_grade_name"/>
+<WidgetAttr/>
+<EMSG>
+<![CDATA[“年级”为必填项]]></EMSG>
+<Dictionary class="com.fr.data.impl.TableDataDictionary">
+<FormulaDictAttr kiName="cla_grade_name" viName="cla_grade_name"/>
+<TableDataDictAttr>
+<TableData class="com.fr.data.impl.NameTableData">
+<Name>
+<![CDATA[cla_grade_name]]></Name>
+</TableData>
+</TableDataDictAttr>
+</Dictionary>
+<widgetValue>
+<O>
+<![CDATA[]]></O>
+</widgetValue>
+</InnerWidget>
+<BoundsAttr x="488" y="8" width="90" height="21"/>
+</Widget>
+<Widget class="com.fr.form.ui.container.WAbsoluteLayout$BoundsWidget">
+<InnerWidget class="com.fr.form.ui.Label">
+<WidgetName name="Label_gt"/>
+<WidgetAttr/>
+<LabelAttr verticalcenter="true" textalign="0" autoline="true"/>
+<FRFont name="SimSun" style="0" size="72"/>
+<widgetValue>
+<O>
+<![CDATA[年部:]]></O>
+</widgetValue>
+</InnerWidget>
+<BoundsAttr x="336" y="8" width="35" height="21"/>
+</Widget>
+<Widget class="com.fr.form.ui.container.WAbsoluteLayout$BoundsWidget">
+<InnerWidget class="com.fr.form.ui.ComboBox">
+<WidgetName name="cla_gt_name"/>
+<WidgetAttr/>
+<EMSG>
+<![CDATA[“年部”为必填项]]></EMSG>
+<Dictionary class="com.fr.data.impl.TableDataDictionary">
+<FormulaDictAttr kiName="gtname" viName="gtname"/>
+<TableDataDictAttr>
+<TableData class="com.fr.data.impl.NameTableData">
+<Name>
+<![CDATA[cla_gt_name]]></Name>
+</TableData>
+</TableDataDictAttr>
+</Dictionary>
+<widgetValue>
+<O>
+<![CDATA[]]></O>
+</widgetValue>
+</InnerWidget>
+<BoundsAttr x="371" y="8" width="69" height="21"/>
+</Widget>
+<Widget class="com.fr.form.ui.container.WAbsoluteLayout$BoundsWidget">
+<InnerWidget class="com.fr.form.ui.Label">
+<WidgetName name="Label_year"/>
+<WidgetAttr/>
+<LabelAttr verticalcenter="true" textalign="0" autoline="true"/>
+<FRFont name="SimSun" style="0" size="72"/>
+<widgetValue>
+<O>
+<![CDATA[年份:]]></O>
+</widgetValue>
+</InnerWidget>
+<BoundsAttr x="78" y="8" width="32" height="21"/>
+</Widget>
+<Widget class="com.fr.form.ui.container.WAbsoluteLayout$BoundsWidget">
+<InnerWidget class="com.fr.form.ui.Label">
+<WidgetName name="Label_term"/>
+<WidgetAttr/>
+<LabelAttr verticalcenter="true" textalign="0" autoline="true"/>
+<FRFont name="SimSun" style="0" size="72"/>
+<widgetValue>
+<O>
+<![CDATA[学期:]]></O>
+</widgetValue>
+</InnerWidget>
+<BoundsAttr x="197" y="8" width="32" height="21"/>
+</Widget>
+<Widget class="com.fr.form.ui.container.WAbsoluteLayout$BoundsWidget">
+<InnerWidget class="com.fr.form.ui.ComboBox">
+<Listener event="afterinit">
+<JavaScript class="com.fr.js.JavaScriptImpl">
+<Parameters/>
+<Content>
+<![CDATA[null]]></Content>
+</JavaScript>
+</Listener>
+<WidgetName name="cla_year"/>
+<WidgetAttr/>
+<EMSG>
+<![CDATA[“年份”为必填项]]></EMSG>
+<allowBlank>
+<![CDATA[false]]></allowBlank>
+<Dictionary class="com.fr.data.impl.TableDataDictionary">
+<FormulaDictAttr kiName="year" viName="year"/>
+<TableDataDictAttr>
+<TableData class="com.fr.data.impl.NameTableData">
+<Name>
+<![CDATA[cla_year]]></Name>
+</TableData>
+</TableDataDictAttr>
+</Dictionary>
+<widgetValue>
+<O t="Formula" class="Formula">
+<Attributes>
+<![CDATA[=year(now())]]></Attributes>
+</O>
+</widgetValue>
+</InnerWidget>
+<BoundsAttr x="110" y="8" width="64" height="21"/>
+</Widget>
+<Widget class="com.fr.form.ui.container.WAbsoluteLayout$BoundsWidget">
+<InnerWidget class="com.fr.form.ui.ComboBox">
+<WidgetName name="cla_subject_names"/>
+<WidgetAttr/>
+<EMSG>
+<![CDATA[“学科”为必填项]]></EMSG>
+<Dictionary class="com.fr.data.impl.TableDataDictionary">
+<FormulaDictAttr kiName="cla_subject_name" viName="cla_subject_name"/>
+<TableDataDictAttr>
+<TableData class="com.fr.data.impl.NameTableData">
+<Name>
+<![CDATA[cla_subject_names]]></Name>
+</TableData>
+</TableDataDictAttr>
+</Dictionary>
+<widgetValue>
+<O>
+<![CDATA[]]></O>
+</widgetValue>
+</InnerWidget>
+<BoundsAttr x="627" y="8" width="64" height="21"/>
+</Widget>
+<Widget class="com.fr.form.ui.container.WAbsoluteLayout$BoundsWidget">
+<InnerWidget class="com.fr.form.ui.Label">
+<WidgetName name="label0_1"/>
+<WidgetAttr disabled="true"/>
+<LabelAttr verticalcenter="true" textalign="4" autoline="true"/>
+<FRFont name="SimSun" style="0" size="72" foreground="-65536"/>
+<widgetValue>
+<O>
+<![CDATA[*]]></O>
+</widgetValue>
+</InnerWidget>
+<BoundsAttr x="69" y="8" width="9" height="21"/>
+</Widget>
+<Widget class="com.fr.form.ui.container.WAbsoluteLayout$BoundsWidget">
+<InnerWidget class="com.fr.form.ui.Label">
+<WidgetName name="label0_2"/>
+<WidgetAttr disabled="true"/>
+<LabelAttr verticalcenter="true" textalign="4" autoline="true"/>
+<FRFont name="SimSun" style="0" size="72" foreground="-65536"/>
+<widgetValue>
+<O>
+<![CDATA[*]]></O>
+</widgetValue>
+</InnerWidget>
+<BoundsAttr x="188" y="8" width="9" height="21"/>
+</Widget>
+<Widget class="com.fr.form.ui.container.WAbsoluteLayout$BoundsWidget">
+<InnerWidget class="com.fr.form.ui.CheckBox">
+<WidgetName name="num_14"/>
+<WidgetAttr/>
+<widgetValue>
+<O t="B">
+<![CDATA[false]]></O>
+</widgetValue>
+</InnerWidget>
+<BoundsAttr x="570" y="37" width="32" height="21"/>
+</Widget>
+<Widget class="com.fr.form.ui.container.WAbsoluteLayout$BoundsWidget">
+<InnerWidget class="com.fr.form.ui.Label">
+<WidgetName name="Label_14"/>
+<WidgetAttr/>
+<LabelAttr verticalcenter="true" textalign="0" autoline="true"/>
+<FRFont name="SimSun" style="0" size="72"/>
+<widgetValue>
+<O>
+<![CDATA[教师是否迟到:]]></O>
+</widgetValue>
+</InnerWidget>
+<BoundsAttr x="488" y="37" width="83" height="21"/>
+</Widget>
+<Widget class="com.fr.form.ui.container.WAbsoluteLayout$BoundsWidget">
+<InnerWidget class="com.fr.form.ui.ComboCheckBox">
+<WidgetName name="cla_term_name"/>
+<WidgetAttr/>
+<Dictionary class="com.fr.data.impl.TableDataDictionary">
+<FormulaDictAttr kiName="cla_term_name" viName="cla_term_name"/>
+<TableDataDictAttr>
+<TableData class="com.fr.data.impl.NameTableData">
+<Name>
+<![CDATA[cla_term_name]]></Name>
+</TableData>
+</TableDataDictAttr>
+</Dictionary>
+<widgetValue>
+<O>
+<![CDATA[春季班]]></O>
+</widgetValue>
+<RAAttr delimiter="&apos;,&apos;" isArray="false"/>
+</InnerWidget>
+<BoundsAttr x="229" y="8" width="93" height="21"/>
+</Widget>
+<Widget class="com.fr.form.ui.container.WAbsoluteLayout$BoundsWidget">
+<InnerWidget class="com.fr.form.ui.Label">
+<WidgetName name="Label_end"/>
+<WidgetAttr/>
+<LabelAttr verticalcenter="true" textalign="0" autoline="true"/>
+<FRFont name="SimSun" style="0" size="72"/>
+<widgetValue>
+<O>
+<![CDATA[考勤结束日期:]]></O>
+</widgetValue>
+</InnerWidget>
+<BoundsAttr x="283" y="37" width="80" height="21"/>
+</Widget>
+<Widget class="com.fr.form.ui.container.WAbsoluteLayout$BoundsWidget">
+<InnerWidget class="com.fr.form.ui.DateEditor">
+<WidgetName name="start_date"/>
+<WidgetAttr/>
+<DateAttr/>
+<widgetValue>
+<databinding>
+<![CDATA[{Name:ds_date,Key:上周一}]]></databinding>
+</widgetValue>
+</InnerWidget>
+<BoundsAttr x="161" y="37" width="105" height="21"/>
+</Widget>
+<Widget class="com.fr.form.ui.container.WAbsoluteLayout$BoundsWidget">
+<InnerWidget class="com.fr.form.ui.DateEditor">
+<WidgetName name="end_date"/>
+<WidgetAttr/>
+<DateAttr/>
+<widgetValue>
+<databinding>
+<![CDATA[{Name:ds_date,Key:上周日}]]></databinding>
+</widgetValue>
+</InnerWidget>
+<BoundsAttr x="363" y="37" width="105" height="21"/>
+</Widget>
+<LCAttr vgap="0" hgap="0"/>
+</Layout>
+<DesignAttr width="1115" height="64"/>
+</ParameterUI>
+</ReportParameterAttr>
+<StyleList>
+<Style horizontal_alignment="0" imageLayout="1" paddingLeft="1" paddingRight="1">
+<FRFont name="SimSun" style="0" size="72"/>
+<Background name="ColorBackground" color="-1315341"/>
+<Border>
+<Top style="1" color="-4206630"/>
+<Bottom style="1" color="-4206630"/>
+<Left style="1" color="-4206630"/>
+<Right style="1" color="-4206630"/>
+</Border>
+</Style>
+<Style horizontal_alignment="0" imageLayout="1" paddingLeft="1" paddingRight="1">
+<FRFont name="SimSun" style="0" size="72"/>
+<Background name="ColorBackground" color="-1"/>
+<Border>
+<Top style="1" color="-4206630"/>
+<Bottom style="1" color="-4206630"/>
+<Left style="1" color="-4206630"/>
+<Right style="1" color="-4206630"/>
+</Border>
+</Style>
+</StyleList>
+<DesignerVersion DesignerVersion="HAF"/>
+<PreviewType PreviewType="0"/>
+</WorkBook>
